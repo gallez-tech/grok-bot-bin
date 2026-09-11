@@ -1,0 +1,115 @@
+name: Check for new release
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump PKGBUILD if a new version is out
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # linux-x64 feed carries the release commit in the download URL
+          resp=$(curl -fsSL \
+            'https://api2.cursor.sh/updates/api/update/linux-x64/sand/0.0.0/00000000-0000-0000-0000-000000000000/stable')
+          version=$(jq -r .version <<<"$resp")
+          commit=$(jq -r .url <<<"$resp" | sed -E 's#.*/stable/([^/]+)/.*#\1#')
+          current=$(sed -n 's/^pkgver=//p' PKGBUILD)
+
+          if [[ -z "$version" || "$version" == "null" || ! "$commit" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Could not parse update feed: $resp"
+            exit 1
+          fi
+          if [[ "$version" == "$current" ]]; then
+            echo "Up to date at $version, nothing to do."
+            exit 0
+          fi
+          echo "New release: $current -> $version (commit $commit)"
+
+          deb_url="https://downloads.cursor.com/grokbot/stable/${commit}/linux/x64/grok-bot_${version}_amd64.deb"
+          curl -fsSL --retry 3 "$deb_url" -o /tmp/grok-bot.deb
+          sha=$(sha256sum /tmp/grok-bot.deb | cut -d' ' -f1)
+
+          sed -i \
+            -e "s/^pkgver=.*/pkgver=${version}/" \
+            -e "s/^_commit=.*/_commit=${commit}/" \
+            PKGBUILD
+          # Replace only the first sha256sums entry (the .deb); keep grok-bot.sh hash
+          awk -v sha="$sha" '
+            BEGIN { replaced = 0 }
+            /^sha256sums=\(/ { print; next }
+            !replaced && /^[[:space:]]*'\''[0-9a-f]{64}'\''/ {
+              sub(/'\''[0-9a-f]{64}'\''/, "'\''" sha "'\''")
+              replaced = 1
+            }
+            { print }
+          ' PKGBUILD > PKGBUILD.tmp && mv PKGBUILD.tmp PKGBUILD
+
+          # Regenerate .SRCINFO from PKGBUILD fields without makepkg
+          python3 - <<'PY'
+          import pathlib, re
+          text = pathlib.Path("PKGBUILD").read_text()
+          def field(name):
+              m = re.search(rf"^{name}=([^\n#]+)", text, re.M)
+              return m.group(1).strip().strip("'\"") if m else ""
+          pkgver = field("pkgver")
+          pkgrel = field("pkgrel")
+          commit = field("_commit")
+          sums = re.findall(r"'([0-9a-f]{64})'", text.split("sha256sums=", 1)[1].split(")", 1)[0])
+          depends = re.findall(r"'([^']+)'", re.search(r"depends=\((.*?)\)", text, re.S).group(1))
+          optdeps = re.findall(r"'([^']+)'", re.search(r"optdepends=\((.*?)\)", text, re.S).group(1))
+          lines = [
+              "pkgbase = grok-bot-bin",
+              "\tpkgdesc = Grok Bot desktop agent",
+              f"\tpkgver = {pkgver}",
+              f"\tpkgrel = {pkgrel}",
+              "\turl = https://cursor.com",
+              "\tarch = x86_64",
+              "\tlicense = LicenseRef-Proprietary",
+          ]
+          for d in depends:
+              lines.append(f"\tdepends = {d}")
+          for d in optdeps:
+              lines.append(f"\toptdepends = {d}")
+          lines += [
+              "\tprovides = grok-bot",
+              "\tconflicts = grok-bot",
+              f"\tnoextract = grok-bot_{pkgver}_amd64.deb",
+              "\toptions = !strip",
+              "\toptions = !debug",
+              f"\tsource = grok-bot_{pkgver}_amd64.deb::https://downloads.cursor.com/grokbot/stable/{commit}/linux/x64/grok-bot_{pkgver}_amd64.deb",
+              "\tsource = grok-bot.sh",
+              f"\tsha256sums = {sums[0]}",
+              f"\tsha256sums = {sums[1]}",
+              "",
+              "pkgname = grok-bot-bin",
+              "",
+          ]
+          pathlib.Path(".SRCINFO").write_text("\n".join(lines))
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PKGBUILD .SRCINFO
+          git commit -m "grok-bot-bin ${version}"
+          git tag "v${version}"
+          git push origin "v${version}" HEAD:main
+
+          # Tag push with GITHUB_TOKEN does not trigger other workflows
+          gh workflow run build.yml --ref "v${version}"
