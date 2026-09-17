@@ -6,7 +6,7 @@
 # Linux .deb:
 #   https://downloads.cursor.com/grokbot/stable/<commit>/linux/x64/grok-bot_<version>_amd64.deb
 pkgname=grok-bot-bin
-pkgver=0.53.0
+pkgver=0.55.0
 pkgrel=1
 pkgdesc='Grok Bot desktop agent'
 arch=('x86_64')
@@ -29,14 +29,14 @@ optdepends=('libappindicator-gtk3: tray support')
 provides=("${pkgname%-bin}")
 conflicts=("${pkgname%-bin}")
 options=('!strip' '!debug')
-_commit=a1ebb5b6cd971e55e5a6092413a3af68ed5a533e
+_commit=b4d3f3b656b57c91705c69d2aea9dd31d6428748
 source=(
   "grok-bot_${pkgver}_amd64.deb::https://downloads.cursor.com/grokbot/stable/${_commit}/linux/x64/grok-bot_${pkgver}_amd64.deb"
   "grok-bot.sh"
 )
 noextract=("grok-bot_${pkgver}_amd64.deb")
 sha256sums=(
-  '5aadc536cad16fce5cb5b987d3ea086df52874de47d101a0c99b754592cd2a83'
+  '55b3a38e581b9e0c51edc2de255d339b2c7cfedff9a16fdd908e870fb0160a31'
   '9b3cccfada1dbe44ce794177181515aaf328603484327ef72a914234544bfbf8'
 )
 
