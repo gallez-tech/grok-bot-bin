@@ -1,6 +1,6 @@
 pkgbase = grok-bot-bin
 	pkgdesc = Grok Bot desktop agent
-	pkgver = 0.61.0
+	pkgver = 0.62.0
 	pkgrel = 1
 	url = https://cursor.com
 	arch = x86_64
@@ -19,12 +19,12 @@ pkgbase = grok-bot-bin
 	optdepends = libappindicator-gtk3: tray support
 	provides = grok-bot
 	conflicts = grok-bot
-	noextract = grok-bot_0.61.0_amd64.deb
+	noextract = grok-bot_0.62.0_amd64.deb
 	options = !strip
 	options = !debug
-	source = grok-bot_0.61.0_amd64.deb::https://downloads.cursor.com/grokbot/stable/47a9d1df3a7d37aaa53d206ab2d1f9159a336223/linux/x64/grok-bot_0.61.0_amd64.deb
+	source = grok-bot_0.62.0_amd64.deb::https://downloads.cursor.com/grokbot/stable/a67f2c3899679c9eb027dc51987b449e0268bd8f/linux/x64/grok-bot_0.62.0_amd64.deb
 	source = grok-bot.sh
-	sha256sums = 3616c006748993a02674afc8a50513073d716b3bfa554943450dacf8e82576ef
+	sha256sums = cabc4bac50938294ca4a3b7c9b61c6e4769e2b83d3f55d64ebdbf27c22f7f979
 	sha256sums = 9b3cccfada1dbe44ce794177181515aaf328603484327ef72a914234544bfbf8
 
 pkgname = grok-bot-bin
