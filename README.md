@@ -10,11 +10,16 @@ update API daily and builds the matching Linux `.deb` into an Arch package.
 ## Install from a GitHub release
 
 Every release carries a version-free package name, so this command always
-fetches the newest build — no version bump in the prompt:
+fetches the newest build — no version bump in the prompt. It downloads into a
+throwaway temp dir, so it leaves nothing in your home directory or the
+directory you run it from:
 
 ```sh
-curl -fLO https://github.com/gallez-tech/grok-bot-bin/releases/latest/download/grok-bot-bin-x86_64.pkg.tar.zst
-sudo pacman -U grok-bot-bin-x86_64.pkg.tar.zst
+tmp=$(mktemp -d)
+curl -fLo "$tmp/grok-bot-bin-x86_64.pkg.tar.zst" \
+  https://github.com/gallez-tech/grok-bot-bin/releases/latest/download/grok-bot-bin-x86_64.pkg.tar.zst
+sudo pacman -U "$tmp/grok-bot-bin-x86_64.pkg.tar.zst"
+rm -rf "$tmp"
 ```
 
 Download first — do not pass the URL straight to `pacman -U`. With the
