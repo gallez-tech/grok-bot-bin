@@ -28,6 +28,16 @@ jobs:
           chown -R builder:builder .
           sudo -u builder makepkg -sf --noconfirm
 
+      - name: Add version-free alias
+        run: |
+          shopt -s nullglob
+          pkgs=(grok-bot-bin-*.pkg.tar.zst)
+          if (( ${#pkgs[@]} != 1 )); then
+            echo "::error::Expected exactly one built package, got: ${pkgs[*]}"
+            exit 1
+          fi
+          cp "${pkgs[0]}" grok-bot-bin-x86_64.pkg.tar.zst
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
